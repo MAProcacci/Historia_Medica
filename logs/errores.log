@@ -1,0 +1,6 @@
+[2025-02-13 17:19:04] [ERROR] Historia_Medica - Error al mostrar la historia médica: 'str' object has no attribute 'item'
+[2025-02-13 17:19:07] [ERROR] Historia_Medica - Error al mostrar la historia médica: 'str' object has no attribute 'item'
+[2025-02-13 17:30:24] [ERROR] Historia_Medica - Error al mostrar la historia médica: 'CTkToplevel' object has no attribute 'pack'
+[2025-02-13 17:54:41] [ERROR] Execute_Query - Error al ejecutar la consulta: NOT NULL constraint failed: historia_medica.id_persona
+[2025-02-13 17:55:40] [ERROR] Execute_Query - Error al ejecutar la consulta: NOT NULL constraint failed: historia_medica.id_persona
+[2025-02-13 17:58:07] [ERROR] Execute_Query - Error al ejecutar la consulta: NOT NULL constraint failed: historia_medica.id_persona
