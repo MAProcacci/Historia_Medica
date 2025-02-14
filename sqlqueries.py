@@ -35,6 +35,11 @@ class QueriesSQLite:
 
         :param path: Ruta de la base de datos
         :return: Conexion a la base de datos
+
+        # Modo de uso en el codigo:
+        with get_db_connection(DB_NAME) as connection:
+            query = "SELECT * FROM articulos"
+            result = QueriesSQLite.execute_read_query(connection, query)
         """
         connection = None
         try:
@@ -45,13 +50,7 @@ class QueriesSQLite:
             registrar_error(f"Get_DB_Connection - Error al crear la conexion: {e}")
         finally:
             if connection:
-                connection.close()
-    """
-    # Modo de uso en el codigo:
-    with get_db_connection(DB_NAME) as connection:
-        query = "SELECT * FROM articulos"
-        result = QueriesSQLite.execute_read_query(connection, query)
-    """
+                connection.close()    
 
     @staticmethod
     def execute_query(connection, query, data_tuple):
