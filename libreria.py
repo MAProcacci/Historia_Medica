@@ -8,6 +8,15 @@ from tkcalendar import Calendar, DateEntry
 from tkinter import Toplevel, Button
 from tkinter import messagebox
 
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+from email.mime.base import MIMEBase
+from email import encoders
+
+import qrcode
+
 
 # Colores
 COLOR_FONDO = "#2f343f" # "#007e8f"
@@ -320,3 +329,75 @@ def confirmar_eliminacion(root):
 
     return respuesta
 
+def generador_de_qr(objeto):
+    """
+    Genera un código QR basado en el objeto proporcionado.
+    
+    :param objeto: El objeto a incluir en el código QR.
+    :return: La imagen del código QR generada.
+    
+    NOTA: Modo de uso:
+        qr_code = generador_de_qr(objeto)
+    """
+    # Definir el objeto a incluir en el código QR
+    objeto = str(objeto)
+
+    # Generar el código QR
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=2)
+
+    # Agregar el objeto al código QR
+    qr.add_data(objeto)
+    qr.make(fit=True)
+
+    # Crear la imagen del código QR
+    img = qr.make_image(fill_color="black", back_color="white")
+    #img.save("qr_code.png")
+    return img
+
+def enviar_correo(remitente, password_remitente, destinatario, asunto, cuerpo, adjuntos=None):
+    """
+    Envia un correo electrónico a un destinatario con un asunto y cuerpo determinados.
+    
+    :param remitente: La dirección de correo electrónico del remitente.
+    :param password_remitente: La contraseña de la cuenta de correo electrónico del remitente.    
+    :param destinatario: La dirección de correo electrónico del destinatario.
+    :param asunto: El asunto del correo electrónico.
+    :param cuerpo: El cuerpo del correo electrónico.
+    :param adjuntos: Una lista de rutas de archivos adjuntos.
+    :return: None
+    
+    NOTA: Modo de uso:
+        enviar_correo(remitente, password_remitente, destinatario, asunto, cuerpo, adjuntos)
+    """
+    # Configurar el servidor SMTP
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+
+    # Iniciar sesión en la cuenta de correo electrónico
+    server.login(remitente, password_remitente)
+
+    # Crear el mensaje
+    message = MIMEMultipart()
+    message['From'] = remitente
+    message['To'] = destinatario
+    message['Subject'] = asunto
+
+    # Agregar el cuerpo del mensaje
+    message.attach(MIMEText(cuerpo, 'plain'))
+
+    # Agregar adjuntos (opcional)
+    if adjuntos:
+        for archivo in adjuntos:
+            with open(archivo, 'rb') as f:
+                msg = MIMEImage(f.read())
+            message.attach(msg)
+
+    # Enviar el mensaje
+    server.sendmail(remitente, destinatario, message.as_string())
+
+    # Cerrar la conexión SMTP
+    server.quit()
