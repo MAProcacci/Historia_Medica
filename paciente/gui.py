@@ -34,6 +34,7 @@ class Frame(ctk.CTkFrame):
         self.id_PersonaHistoria = None
         self.id_historiaMedica = None
         self.swith1 = False
+        self.snackbar = SnackBar(self)
         self.campos_paciente()
         self.desabilitar_entrys()
         self.tabla_paciente()
@@ -279,6 +280,7 @@ class Frame(ctk.CTkFrame):
                     nro_id_int = int(nro_id)
                     condiciones.append(f"nro_id = {nro_id_int}")
                 except ValueError:
+                    #self.snackbar.show("El número de ID debe ser un valor numérico.", tipo="advertencia")
                     messagebox.showwarning("Buscar_Paciente - Warning", "El número de ID debe ser un valor numérico.")
                     return
 

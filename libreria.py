@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+import winsound
 import tkinter as tk
 import customtkinter as ctk
 from PIL import Image, ImageTk
@@ -22,7 +23,7 @@ import qrcode
 COLOR_FONDO = "#2f343f" # "#007e8f"
 COLOR_BOTON = "#4d636f"
 COLOR_BOTON_ACTIVO = "#18232b"  # "#2E86C1"  "#3b4a51"
-COLOR_BG_LISTAS = "#b5b7c7"  #"#2E86C1"
+COLOR_BG_LISTAS = "#b5b7c7"  #"#2E86C1" 
 COLOR_BG_VENTANA_EMERGENTE = "#50b9e6"  # "#e68a22"
 COLOR_BT_SALIR = "black"
 COLOR_BT_SALIR_ACTIVO = "#3b3939"
@@ -35,31 +36,93 @@ class SnackBar:
     Clase para mostrar un SnackBar con un mensaje.
     Atributos:
         root (Tk): Ventana principal de la interfaz de usuario.
+        font (tuple): Fuente para el mensaje (opcional, por defecto ("Arial", 12, "bold")).
 
     NOTA: Modo de uso:
         snackbar = SnackBar(root)
-        snackbar.show("Mensaje de ejemplo")
+        snackbar.show("Mensaje de ejemplo", tipo="exito") # Duración por defecto: 3000 ms (3 segundos)
+        snackbar.show("Mensaje de ejemplo", tipo="informacion", duration=5000) # Duración: 5000 ms (5 segundos)
 
-    NOTA: Personalizar colores:
-        snackbar = SnackBar(root)
-        snackbar.show("Mensaje de ejemplo", bg_color="red", fg_color="white")
-
-    NOTA: Personalizar duración:
-        snackbar = SnackBar(root)
-        snackbar.show("Mensaje de ejemplo", duration=5000) # 5000 milisegundos = 5 segundos / por defecto 3 segundos.
+    Tipos de mensaje:
+        - "exito": Letras azules, fondo negro, sonido de éxito.
+        - "informacion": Letras blancas, fondo negro, sonido de información.
+        - "error": Letras rojas, fondo negro, sonido de error.
+        - "advertencia": Letras amarillo mostaza, fondo negro, sonido de advertencia.
     """
-    def __init__(self, root):
+    def __init__(self, root, font=("Arial", 14, "bold")):
         self.root = root
         self.snackbar_window = None
+        self.font = font
+        self.contador_label = None  # Etiqueta para mostrar el tiempo restante
 
-    def show(self, message, duration=3000, bg_color="green", fg_color="white"):
+        # Sonidos predeterminados (puedes cambiar las rutas a archivos .wav o .mp3)
+        self.sonidos = {
+            "exito": "success.wav",  # Ruta a un archivo de sonido de éxito
+            "informacion": "info.wav",  # Ruta a un archivo de sonido de información
+            "error": "error.wav",  # Ruta a un archivo de sonido de error
+            "advertencia": "warning.wav"  # Ruta a un archivo de sonido de advertencia
+        }
+
+    def reproducir_sonido(self, tipo):
+        """
+        Reproduce un sonido según el tipo de mensaje.
+        :param tipo: El tipo de mensaje ("exito", "informacion", "error", "advertencia").
+        """
+        try:
+            # Obtener la ruta del sonido
+            ruta_sonido = self.sonidos.get(tipo, None)
+            if ruta_sonido:
+                # Reproducir el sonido (Windows)
+                winsound.PlaySound(ruta_sonido, winsound.SND_ASYNC)
+                # Si usas playsound (multiplataforma):
+                # playsound(ruta_sonido)
+        except Exception as e:
+            messagebox.showerror("SnackBar - Error de Sonido", f"Error al reproducir el sonido: {e}")
+            registrar_error(f"SnackBar - Error al reproducir el sonido: {e}")
+
+    def actualizar_contador(self, tiempo_restante):
+        """
+        Actualiza el contador de tiempo restante en la ventana del SnackBar.
+        :param tiempo_restante: El tiempo restante en segundos.
+        """
+        if self.contador_label:
+            self.contador_label.configure(text=f"Esta ventana se cerrará en {tiempo_restante} segundos...")
+            if tiempo_restante > 0:
+                # Programar la próxima actualización en 1 segundo (1000 ms)
+                self.snackbar_window.after(1000, self.actualizar_contador, tiempo_restante - 1)
+
+    def show(self, message, tipo="informacion", duration=3000):
         """Muestra un SnackBar con un mensaje."""
+        # Validación de parámetros
+        if not isinstance(message, str):
+            raise ValueError("El mensaje debe ser una cadena de texto.")
+        if not isinstance(duration, int) or duration <= 0:
+            raise ValueError("La duración debe ser un entero mayor que 0.")
+        if tipo not in ["exito", "informacion", "error", "advertencia"]:
+            raise ValueError("El tipo de mensaje debe ser 'exito', 'informacion', 'error' o 'advertencia'.")
+
+        # Definir colores según el tipo de mensaje
+        colores = {
+            "exito": {"fg": "cyan", "bg": "black"},
+            "informacion": {"fg": "white", "bg": "black"},
+            "error": {"fg": "red", "bg": "black"},
+            "advertencia": {"fg": "#FFDB58", "bg": "black"}  # Amarillo mostaza
+        }
+
+        # Obtener colores según el tipo de mensaje
+        fg_color = colores[tipo]["fg"]
+        bg_color = colores[tipo]["bg"]
+
+        # Cerrar la ventana existente si hay una
         if self.snackbar_window:
             self.snackbar_window.destroy()
 
         # Crear una ventana Toplevel
-        self.snackbar_window = tk.Toplevel(self.root)
-        self.snackbar_window.overrideredirect(True)  # Eliminar la barra de título
+        self.snackbar_window = ctk.CTkToplevel(self.root)
+        self.snackbar_window.title(f"SnackBar - {tipo.capitalize()}")
+        self.snackbar_window.resizable(False, False)
+        self.snackbar_window.transient(self.root)  # Colocar la ventana sobre la principal
+        self.snackbar_window.grab_set()
 
         # Obtener las dimensiones de la pantalla
         screen_width = self.snackbar_window.winfo_screenwidth()
@@ -79,17 +142,80 @@ class SnackBar:
 
         # Configurar el fondo y el mensaje
         self.snackbar_window.config(bg=bg_color)
-        label = tk.Label(
-            self.snackbar_window, text=message, bg=bg_color, fg=fg_color, font=("Arial", 12,"bold")
+        label = ctk.CTkLabel(
+            self.snackbar_window, text=message, text_color=fg_color, fg_color="black", font=self.font
         )
         label.pack(padx=20, pady=10)
+
+        # Agregar una etiqueta para mostrar el tiempo restante
+        self.contador_label = ctk.CTkLabel(
+            self.snackbar_window, text="", text_color="white", fg_color="black", font=("Arial", 10)
+        )
+        self.contador_label.pack(pady=5)
+
+        # Iniciar el contador de tiempo restante
+        tiempo_restante = duration // 1000  # Convertir milisegundos a segundos
+        self.actualizar_contador(tiempo_restante)
+
+        # Reproducir el sonido correspondiente
+        self.reproducir_sonido(tipo)
 
         # Cerrar la ventana después de un tiempo
         self.snackbar_window.after(duration, self.snackbar_window.destroy)
 
-    def mostrar_snackbar(self, mensaje):
+    def mostrar_snackbar(self, mensaje, tipo="informacion"):
         """Muestra un SnackBar con un mensaje."""
-        self.show(mensaje, duration=3000, bg_color="green", fg_color="white")  # Personalizar colores
+        self.show(mensaje, tipo=tipo, duration=3000)
+
+class Generador_Botones:
+    """
+    Clase para generar botones en una ventana CTkinter.
+    
+    Atributos:
+        root (Tk): La ventana CTkinter donde se generaran los botones.
+        lista_botones (list): Una lista de textos para los botones.
+        nro_columnas (int): El numero de columnas en la grilla donde se generaran los botones.
+        fuente (tuple): La fuente para los botones (ej: ("Arial", 14, "bold")).
+        ancho (int): Ancho de los botones (opcional, por defecto 150).
+        alto (int): Alto de los botones (opcional, por defecto 30).
+        callback (function): Función a ejecutar al hacer clic en un botón (opcional).
+    
+    NOTA: Modo de uso:
+        generar_botones = Generador_Botones(root, ["Botón 1", "Botón 2", "Botón 3"], 3, ("Arial", 14, "bold"))
+    """
+    def __init__(self, root, lista_botones, nro_columnas, fuente, ancho=150, alto=30, callback=None):
+        self.root = root
+        self.lista_botones = lista_botones
+        self.nro_columnas = nro_columnas
+        self.font = fuente
+        self.ancho = ancho
+        self.alto = alto
+        self.callback = callback
+
+        # Validación de parámetros
+        if not isinstance(lista_botones, list):
+            raise ValueError("lista_botones debe ser una lista.")
+        if not isinstance(nro_columnas, int) or nro_columnas <= 0:
+            raise ValueError("nro_columnas debe ser un entero mayor que 0.")
+        if not isinstance(fuente, tuple) or len(fuente) != 3:
+            raise ValueError("fuente debe ser una tupla con el formato (nombre, tamaño, estilo).")
+
+        # Contador para la posición de los botones
+        contador = 0
+
+        # Crear los botones y agregarle los textos
+        for texto_btn in self.lista_botones:
+            boton = ctk.CTkButton(
+                self.root,
+                text=f"{texto_btn}",
+                width=self.ancho,
+                height=self.alto,
+                font=self.font,
+                cursor="hand2",
+                command=self.callback
+            )
+            boton.grid(row=contador // self.nro_columnas, column=contador % self.nro_columnas, padx=5, pady=5)
+            contador += 1
 
 def registrar_error(mensaje, nivel="ERROR"):
     """
@@ -357,6 +483,24 @@ def generador_de_qr(objeto):
     img = qr.make_image(fill_color="black", back_color="white")
     #img.save("qr_code.png")
     return img
+
+def lector_de_qr(img):
+    """
+    Lee un código QR desde una imagen.
+
+    :param img: La imagen del código QR a leer.
+    :return: El texto contenido en el código QR o None si no se puede leer.
+    
+    NOTA: Modo de uso:
+        texto = lector_de_qr(img)
+    """
+    # Leer el código QR desde la imagen
+    qr = qrcode.QRCode()
+    try:
+        qr.read(img)
+        return qr.data
+    except:
+        return None
 
 def enviar_correo(remitente, password_remitente, destinatario, asunto, cuerpo, adjuntos=None):
     """
